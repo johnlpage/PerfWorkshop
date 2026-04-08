@@ -139,6 +139,24 @@ apt-get install -y python3 python3-pip python3-venv
 # Java (Temurin 21)
 apt-get install -y openjdk-21-jdk
 
+apt-get install -y apache2-utils
+
+#Get the sample code
+cd /home/ubuntu
+sudo -u ubuntu git clone https://github.com/johnlpage/PerfWorkshop.git
+cd /home/ubuntuPerfWorkshop
+sudo -i ubuntu git remote remove origin
+
+#!/bin/bash  
+  
+sudo -u ubuntu bash << 'EOF'  
+cd /home/ubuntu/PerfWorkshop/python  
+python3 -m venv venv  
+source venv/bin/activate  
+pip -r requirements.txt
+EOF  
+
+
 # ----------------------------
 # Caddy reverse proxy for code-server
 # ----------------------------

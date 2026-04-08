@@ -82,9 +82,7 @@ bin/
 *.ipr  
 out/  
   
-# VS Code  
-.vscode/  
-*.code-workspace  
+
   
 # Eclipse  
 .metadata/  

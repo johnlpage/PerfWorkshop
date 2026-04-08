@@ -1,0 +1,10 @@
+{  
+    "python.defaultInterpreterPath": "/home/ubuntu/PerfWorkshop/python/venv/bin/python",  
+    "terminal.integrated.profiles.linux": {  
+        "bash": {  
+            "path": "/bin/bash",  
+            "args": ["--init-file", "/home/ubuntu/PerfWorkshop/python/venv/bin/activate"]  
+        }  
+    },  
+    "terminal.integrated.defaultProfile.linux": "bash"  
+}  

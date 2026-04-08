@@ -1,0 +1,13 @@
+{  
+    "terminal.integrated.profiles.linux": {  
+        "bash (venv)": {  
+            "path": "bash",  
+            "args": ["--rcfile", "${workspaceFolder}/venv/bin/activate"]  
+        }  
+    },  
+    "terminal.integrated.defaultProfile.linux": "bash (venv)"  ,
+       "code-runner.executorMap": {  
+        "python": "python"  
+    },  
+    "code-runner.runInTerminal": true  
+}  
