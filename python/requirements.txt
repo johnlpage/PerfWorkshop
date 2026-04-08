@@ -1,0 +1,3 @@
+pymongo[aws]
+requests
+urllib3
