@@ -99,24 +99,27 @@ for i in $(seq 1 30); do
 done
 echo "code-server is up!"
 
+# General
+
+sudo -u $USER_NAME code-server --install-extension PKief.material-icon-theme || true
+
 # Python
-sudo -u $USER_NAME code-server ---extension ms-python.python || true
-sudo -u $USER_NAME code-server ---extension ms-python.debugpy || true
+sudo -u $USER_NAME code-server --install-extension ms-python.python || true
+sudo -u $USER_NAME code-server --install-extension ms-python.debugpy || true
 
 # Java
-sudo -u $USER_NAME code-server ---extension redhat.java || true
-sudo -u $USER_NAME code-server ---extension vscjava.vscode-java-debug || true
-sudo -u $USER_NAME code-server ---extension vscjava.vscode-java-test || true
-sudo -u $USER_NAME code-server ---extension vscjava.vscode-maven || true
+sudo -u $USER_NAME code-server --install-extension redhat.java || true
+sudo -u $USER_NAME code-server --install-extension vscjava.vscode-java-debug || true
+sudo -u $USER_NAME code-server --install-extension vscjava.vscode-java-test || true
+sudo -u $USER_NAME code-server --install-extension vscjava.vscode-maven || true
+sudo -u $USER_NAME code-server --install-extension vscjava.vscode-java-pack || true  
+
 
 # JavaScript/TypeScript
-sudo -u $USER_NAME code-server ---extension dbaeumer.vscode-eslint || true
-sudo -u $USER_NAME code-server ---extension esbenp.prettier-vscode || true
+sudo -u $USER_NAME code-server --install-extension dbaeumer.vscode-eslint || true
+sudo -u $USER_NAME code-server --install-extension esbenp.prettier-vscode || true
 
-# General
-sudo -u $USER_NAME code-server ---extension gitkraken.gitlens || true
-sudo -u $USER_NAME code-server ---extension formulahendry.code-runner || true
-sudo -u $USER_NAME code-server ---extension PKief.material-icon-theme || true
+
 
 # Restart code-server so all extensions are fully loaded
 echo "Restarting code-server to load extensions..."
@@ -144,17 +147,17 @@ apt-get install -y apache2-utils
 #Get the sample code
 cd /home/ubuntu
 sudo -u ubuntu git clone https://github.com/johnlpage/PerfWorkshop.git
-cd /home/ubuntuPerfWorkshop
-sudo -i ubuntu git remote remove origin
+cd /home/ubuntu/PerfWorkshop
+sudo -u ubuntu git remote remove origin
 
-#!/bin/bash  
-  
-sudo -u ubuntu bash << 'EOF'  
-cd /home/ubuntu/PerfWorkshop/python  
-python3 -m venv venv  
-source venv/bin/activate  
-pip -r requirements.txt
-EOF  
+#!/bin/bash
+
+sudo -u ubuntu bash << 'EOF'
+cd /home/ubuntu/PerfWorkshop/python
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+EOF
 
 
 # ----------------------------

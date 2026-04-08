@@ -1,3 +1,2 @@
 pymongo[aws]
-requests
-urllib3
+flask

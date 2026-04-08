@@ -1,5 +1,6 @@
 {  
     "python.defaultInterpreterPath": "/home/ubuntu/PerfWorkshop/python/venv/bin/python",  
+    "python.terminal.activateEnvironment": true,  
     "terminal.integrated.profiles.linux": {  
         "bash": {  
             "path": "/bin/bash",  
