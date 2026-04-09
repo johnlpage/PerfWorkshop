@@ -96,6 +96,7 @@ bind-addr: 127.0.0.1:8080
 auth: password
 password: ${code_server_password}
 cert: false
+welcome-text: "Welcome to MongoDB Performance Workshop. Enter your lab key."  
 EOF
 
 curl -fsSL https://code-server.dev/install.sh | sh

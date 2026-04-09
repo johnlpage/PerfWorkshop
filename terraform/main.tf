@@ -16,6 +16,10 @@ terraform {
       source  = "hashicorp/http"
       version = "~> 3.0"
     }
+      mongodbatlas = {
+      source  = "mongodb/mongodbatlas"
+      version = "~> 1.34"
+    }
   }
 }
 
@@ -84,6 +88,12 @@ locals {
   expire_on = formatdate("YYYY-MM-DD", timeadd(timestamp(), "24h"))
 
   mongo_auth_role_name = "${local.username_clean}_mongoauth"
+
+   bold      = "\u001b[1m"
+  reset     = "\u001b[0m"
+  green     = "\u001b[1;32m"
+  cyan      = "\u001b[1;36m"
+  yellow    = "\u001b[1;33m"
 }
 
 # -------------------------------------------------------------------
@@ -106,17 +116,21 @@ output "mongo_auth_role_arn" {
 
 output "next_steps" {
   value = <<EOF
-Environment ready.
+
+${local.bold}Environment ready.${local.reset}
 
 To retrieve the code-server password, run:
 
-  ${"\033[1;36m"}terraform output -json environment_password${"\033[0m"}
-  
-URL:  
-  ${"\033[1;32m"}https://${local.hostname}${"\033[0m"}
+  ${local.cyan}terraform output -json environment_password${local.reset}
+
+URL:
+  ${local.green}https://${local.hostname}${local.reset}
+
+Connect to MongoDB Atlas with IAM Auth:
+  ${local.yellow}mongosh "mongodb+srv://johnpage-cluster.qcpeq8.mongodb.net/?authSource=%%24external&authMechanism=MONGODB-AWS"${local.reset}
 
 IAM Role ARN for MongoDB Atlas IAM Auth:
-  ${aws_iam_role.mongo_auth.arn}
+  ${local.yellow}${aws_iam_role.mongo_auth.arn}${local.reset}
 EOF
 }
 
