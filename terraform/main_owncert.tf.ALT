@@ -91,9 +91,7 @@ locals {
     63
   )
 
-  # Changed from "usernamecode.mongosa.net" to "username.code.mongosa.net"
-  # to match the *.code.mongosa.net wildcard certificate
-  hostname = "${local.username_clean}.code.mongosa.net"
+  hostname = "${local.username_clean}code.mongosa.net"
 
   my_ip_cidr = "${chomp(data.http.my_ip.response_body)}/32"
 
@@ -101,11 +99,8 @@ locals {
 
   code_server_password_plain = random_password.code_server.result
 
+  # IAM role name for MongoDB Atlas IAM authentication
   mongo_auth_role_name = "${local.username_clean}_mongoauth"
-
-  # Read the wildcard certificate and key from local disk
-  tls_fullchain = file("/Users/jlp/.ssh/certbot/config/live/code.mongosa.net/fullchain.pem")
-  tls_privkey   = file("/Users/jlp/.ssh/certbot/config/live/code.mongosa.net/privkey.pem")
 }
 
 output "environment_password" {
@@ -127,6 +122,7 @@ resource "random_password" "code_server" {
 # IAM Role for MongoDB Atlas IAM Authentication
 # -------------------------------------------------------------------
 
+# Trust policy: allows the EC2 service to assume this role
 resource "aws_iam_role" "mongo_auth" {
   name = local.mongo_auth_role_name
 
@@ -150,6 +146,9 @@ resource "aws_iam_role" "mongo_auth" {
   }
 }
 
+# Policy: only allow the role to verify its own identity via STS
+# This is the minimum needed for MongoDB Atlas IAM authentication —
+# the MongoDB driver calls sts:GetCallerIdentity to prove who it is.
 resource "aws_iam_role_policy" "mongo_auth_sts" {
   name = "${local.mongo_auth_role_name}-sts"
   role = aws_iam_role.mongo_auth.id
@@ -167,6 +166,7 @@ resource "aws_iam_role_policy" "mongo_auth_sts" {
   })
 }
 
+# Instance profile to attach the role to the EC2 instance
 resource "aws_iam_instance_profile" "mongo_auth" {
   name = local.mongo_auth_role_name
   role = aws_iam_role.mongo_auth.name
@@ -215,14 +215,14 @@ data "aws_vpc" "default" {
 }
 
 # -------------------------------------------------------------------
-# EC2 Instance — with IAM instance profile and TLS cert/key
+# EC2 Instance — now with the IAM instance profile attached
 # -------------------------------------------------------------------
 
 resource "aws_instance" "dev" {
-  ami                  = data.aws_ami.ubuntu.id
-  instance_type        = "c8a.large"
-  key_name             = aws_key_pair.codeenv.key_name
-  iam_instance_profile = aws_iam_instance_profile.mongo_auth.name
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "c8a.large"
+  key_name               = aws_key_pair.codeenv.key_name
+  iam_instance_profile   = aws_iam_instance_profile.mongo_auth.name
 
   vpc_security_group_ids = [aws_security_group.dev_env.id]
 
@@ -234,8 +234,6 @@ resource "aws_instance" "dev" {
   user_data = templatefile("${path.module}/install.sh", {
     hostname             = local.hostname
     code_server_password = random_password.code_server.result
-    tls_fullchain        = local.tls_fullchain
-    tls_privkey          = local.tls_privkey
   })
 
   tags = {

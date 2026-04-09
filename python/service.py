@@ -26,7 +26,10 @@ def ingest():
         collection.insert_one(doc)  
         count += 1  
     return jsonify({"inserted": count})  
-  
+
+@app.route("/ping", methods=["GET"])  
+def ping():  
+    return true;
   
 if __name__ == "__main__":  
-    app.run(port=8080)  
+    app.run(port=5050)  

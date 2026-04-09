@@ -3,10 +3,12 @@ set -eux
 
 HOSTNAME="${hostname}"
 
-# -------------------------------------------------------------------
-# Ensure the instance can resolve its own hostname locally
-# -------------------------------------------------------------------
-echo "127.0.0.1 $HOSTNAME" >> /etc/hosts
+
+echo "Waiting for DNS to resolve for $HOSTNAME..."
+until getent hosts "$HOSTNAME"; do
+  sleep 5
+done
+
 
 # Set hostname
 hostnamectl set-hostname "$HOSTNAME"
@@ -18,23 +20,29 @@ apt-get install -y \
   git \
   build-essential \
   ca-certificates \
-  gnupg \
-  nginx
+  gnupg
 
-# -------------------------------------------------------------------
-# Write the wildcard TLS certificate and private key
-# -------------------------------------------------------------------
-mkdir -p /etc/nginx/certs
-cat <<'CERTEOF' > /etc/nginx/certs/fullchain.pem
-${tls_fullchain}
-CERTEOF
+# ----------------------------
+#  Caddy (Ubuntu 24.04 compatible)
+# ----------------------------
 
-cat <<'KEYEOF' > /etc/nginx/certs/privkey.pem
-${tls_privkey}
-KEYEOF
+apt-get install -y ca-certificates curl gnupg
 
-chmod 600 /etc/nginx/certs/privkey.pem
-chmod 644 /etc/nginx/certs/fullchain.pem
+mkdir -p /usr/share/keyrings
+
+curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key \
+  | gpg --dearmor \
+  | tee /usr/share/keyrings/caddy-stable-archive-keyring.gpg > /dev/null
+
+chmod 644 /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+
+cat >/etc/apt/sources.list.d/caddy-stable.list <<EOF
+deb [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.gpg] \
+https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main
+EOF
+
+apt-get update
+apt-get install -y caddy
 
 # ----------------------------
 #  mongosh (MongoDB Shell)
@@ -53,7 +61,7 @@ EOF
 apt-get update
 apt-get install -y mongodb-mongosh
 
-# Verify installation
+# Verify ation
 mongosh --version
 
 # ----------------------------
@@ -67,7 +75,7 @@ sudo -u ubuntu mkdir -p /home/ubuntu/.config/code-server
 cat >/home/ubuntu/.config/code-server/config.yaml <<EOF
 bind-addr: 127.0.0.1:8080
 auth: password
-password: ${code_server_password}
+password:  ${code_server_password}
 cert: false
 EOF
 
@@ -76,7 +84,7 @@ curl -fsSL https://code-server.dev/install.sh | sh
 systemctl enable --now code-server@$USER_NAME
 
 # ----------------------------
-# Wait for code-server to be ready, then install extensions
+# Wait for code-server to be ready, then  extensions
 # ----------------------------
 
 echo "Waiting for code-server to be ready..."
@@ -92,6 +100,7 @@ done
 echo "code-server is up!"
 
 # General
+
 sudo -u $USER_NAME code-server --install-extension PKief.material-icon-theme || true
 
 # Python
@@ -103,16 +112,21 @@ sudo -u $USER_NAME code-server --install-extension redhat.java || true
 sudo -u $USER_NAME code-server --install-extension vscjava.vscode-java-debug || true
 sudo -u $USER_NAME code-server --install-extension vscjava.vscode-java-test || true
 sudo -u $USER_NAME code-server --install-extension vscjava.vscode-maven || true
-sudo -u $USER_NAME code-server --install-extension vscjava.vscode-java-pack || true
+sudo -u $USER_NAME code-server --install-extension vscjava.vscode-java-pack || true  
+
 
 # JavaScript/TypeScript
 sudo -u $USER_NAME code-server --install-extension dbaeumer.vscode-eslint || true
 sudo -u $USER_NAME code-server --install-extension esbenp.prettier-vscode || true
 
+
+
 # Restart code-server so all extensions are fully loaded
 echo "Restarting code-server to load extensions..."
 systemctl restart code-server@$USER_NAME
-echo "Extensions installed and code-server restarted!"
+echo "Extensions ed and code-server restarted!"
+
+
 
 # ----------------------------
 #  runtimes
@@ -130,57 +144,30 @@ apt-get install -y openjdk-21-jdk
 
 apt-get install -y apache2-utils
 
-# Get the sample code
+#Get the sample code
 cd /home/ubuntu
 sudo -u ubuntu git clone https://github.com/johnlpage/PerfWorkshop.git
 cd /home/ubuntu/PerfWorkshop
 sudo -u ubuntu git remote remove origin
 
-sudo -u ubuntu bash << 'PEOF'
+#!/bin/bash
+
+sudo -u ubuntu bash << 'EOF'
 cd /home/ubuntu/PerfWorkshop/python
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-PEOF
+EOF
+
 
 # ----------------------------
-# Nginx reverse proxy with wildcard TLS cert
+# Caddy reverse proxy for code-server
 # ----------------------------
-cat >/etc/nginx/sites-available/code-server <<NGINXEOF
-server {
-    listen 80;
-    server_name $HOSTNAME;
-    return 301 https://\$host\$request_uri;
+cat >/etc/caddy/Caddyfile <<EOF
+$HOSTNAME {
+  reverse_proxy localhost:8080
 }
+EOF
 
-server {
-    listen 443 ssl;
-    server_name $HOSTNAME;
+systemctl reload caddy
 
-    ssl_certificate     /etc/nginx/certs/fullchain.pem;
-    ssl_certificate_key /etc/nginx/certs/privkey.pem;
-
-    ssl_protocols       TLSv1.2 TLSv1.3;
-    ssl_ciphers         HIGH:!aNULL:!MD5;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-
-        # WebSocket support (required for code-server)
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_http_version 1.1;
-    }
-}
-NGINXEOF
-
-rm -f /etc/nginx/sites-enabled/default
-ln -sf /etc/nginx/sites-available/code-server /etc/nginx/sites-enabled/code-server
-
-nginx -t
-systemctl enable nginx
-systemctl restart nginx
