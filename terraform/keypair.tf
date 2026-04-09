@@ -16,5 +16,6 @@ resource "local_file" "private_key" {
 
 output "ssh_command" {
   description = "SSH command using DNS hostname"
-  value       = "ssh -i codeenv.pem ubuntu@${local.hostname}"
+  value       = "ssh -i codeenv.pem  -o StrictHostKeyChecking=no  ubuntu@${local.hostname}"
 }
+

@@ -27,35 +27,8 @@ provider "aws" {
   region = var.region
 }
 
-output "normalized_username" {
-  value = local.username_clean
-}
-
-output "next_steps" {
-  value = <<EOF
-Environment ready.
-
-To retrieve the code-server password, run:
-
-  terraform output -json environment_password
-
-URL:
-  https://${local.hostname}
-
-IAM Role ARN for MongoDB Atlas IAM Auth:
-  ${aws_iam_role.mongo_auth.arn}
-EOF
-}
-
-resource "null_resource" "wait_for_dns" {
-  depends_on = [aws_route53_record.dns]
-
-  provisioner "local-exec" {
-    command = "until nslookup ${local.hostname}; do sleep 2; done"
-  }
-}
-
 data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
 
 data "aws_ssm_parameter" "ubuntu_2404" {
   name = "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id"
@@ -68,6 +41,19 @@ data "aws_ami" "ubuntu" {
     name   = "image-id"
     values = [data.aws_ssm_parameter.ubuntu_2404.value]
   }
+}
+
+# -------------------------------------------------------------------
+# Look up the secrets (we only need the ARNs for IAM policy,
+# the instance itself fetches the values at boot)
+# -------------------------------------------------------------------
+
+data "aws_secretsmanager_secret" "tls_fullchain" {
+  name = "code-mongosa-net/tls-fullchain"
+}
+
+data "aws_secretsmanager_secret" "tls_privkey" {
+  name = "code-mongosa-net/tls-privkey"
 }
 
 locals {
@@ -91,21 +77,21 @@ locals {
     63
   )
 
-  # Changed from "usernamecode.mongosa.net" to "username.code.mongosa.net"
-  # to match the *.code.mongosa.net wildcard certificate
   hostname = "${local.username_clean}.code.mongosa.net"
 
   my_ip_cidr = "${chomp(data.http.my_ip.response_body)}/32"
 
   expire_on = formatdate("YYYY-MM-DD", timeadd(timestamp(), "24h"))
 
-  code_server_password_plain = random_password.code_server.result
-
   mongo_auth_role_name = "${local.username_clean}_mongoauth"
+}
 
-  # Read the wildcard certificate and key from local disk
-  tls_fullchain = file("/Users/jlp/.ssh/certbot/config/live/code.mongosa.net/fullchain.pem")
-  tls_privkey   = file("/Users/jlp/.ssh/certbot/config/live/code.mongosa.net/privkey.pem")
+# -------------------------------------------------------------------
+# Outputs
+# -------------------------------------------------------------------
+
+output "normalized_username" {
+  value = local.username_clean
 }
 
 output "environment_password" {
@@ -118,13 +104,29 @@ output "mongo_auth_role_arn" {
   value       = aws_iam_role.mongo_auth.arn
 }
 
+output "next_steps" {
+  value = <<EOF
+Environment ready.
+
+To retrieve the code-server password, run:
+
+  ${"\033[1;36m"}terraform output -json environment_password${"\033[0m"}
+  
+URL:  
+  ${"\033[1;32m"}https://${local.hostname}${"\033[0m"}
+
+IAM Role ARN for MongoDB Atlas IAM Auth:
+  ${aws_iam_role.mongo_auth.arn}
+EOF
+}
+
 resource "random_password" "code_server" {
   length  = 6
   special = false
 }
 
 # -------------------------------------------------------------------
-# IAM Role for MongoDB Atlas IAM Authentication
+# IAM Role — now also has permission to read TLS secrets
 # -------------------------------------------------------------------
 
 resource "aws_iam_role" "mongo_auth" {
@@ -167,13 +169,35 @@ resource "aws_iam_role_policy" "mongo_auth_sts" {
   })
 }
 
+resource "aws_iam_role_policy" "secrets_read" {
+  name = "${local.mongo_auth_role_name}-secrets-read"
+  role = aws_iam_role.mongo_auth.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowReadTLSCerts"
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = [
+          data.aws_secretsmanager_secret.tls_fullchain.arn,
+          data.aws_secretsmanager_secret.tls_privkey.arn
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_instance_profile" "mongo_auth" {
   name = local.mongo_auth_role_name
   role = aws_iam_role.mongo_auth.name
 }
 
 # -------------------------------------------------------------------
-# Security Group
+# Security Group (unchanged)
 # -------------------------------------------------------------------
 
 resource "aws_security_group" "dev_env" {
@@ -215,7 +239,7 @@ data "aws_vpc" "default" {
 }
 
 # -------------------------------------------------------------------
-# EC2 Instance — with IAM instance profile and TLS cert/key
+# EC2 Instance — certs are now fetched from Secrets Manager at boot
 # -------------------------------------------------------------------
 
 resource "aws_instance" "dev" {
@@ -234,8 +258,9 @@ resource "aws_instance" "dev" {
   user_data = templatefile("${path.module}/install.sh", {
     hostname             = local.hostname
     code_server_password = random_password.code_server.result
-    tls_fullchain        = local.tls_fullchain
-    tls_privkey          = local.tls_privkey
+    aws_region           = data.aws_region.current.name
+    tls_fullchain_secret = "code-mongosa-net/tls-fullchain"
+    tls_privkey_secret   = "code-mongosa-net/tls-privkey"
   })
 
   tags = {
@@ -253,4 +278,12 @@ resource "aws_route53_record" "dns" {
   ttl             = 20
   records         = [aws_instance.dev.public_ip]
   allow_overwrite = true
+}
+
+resource "null_resource" "wait_for_dns" {
+  depends_on = [aws_route53_record.dns]
+
+  provisioner "local-exec" {
+    command = "until nslookup ${local.hostname}; do sleep 2; done"
+  }
 }

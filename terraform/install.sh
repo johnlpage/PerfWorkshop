@@ -2,13 +2,14 @@
 set -eux
 
 HOSTNAME="${hostname}"
+AWS_REGION="${aws_region}"
+TLS_FULLCHAIN_SECRET="${tls_fullchain_secret}"
+TLS_PRIVKEY_SECRET="${tls_privkey_secret}"
 
 # -------------------------------------------------------------------
 # Ensure the instance can resolve its own hostname locally
 # -------------------------------------------------------------------
 echo "127.0.0.1 $HOSTNAME" >> /etc/hosts
-
-# Set hostname
 hostnamectl set-hostname "$HOSTNAME"
 
 apt-get update
@@ -19,27 +20,56 @@ apt-get install -y \
   build-essential \
   ca-certificates \
   gnupg \
-  nginx
+  nginx \
+  unzip \
+  jq
 
 # -------------------------------------------------------------------
-# Write the wildcard TLS certificate and private key
+# Install AWS CLI v2 (needed to fetch secrets)
+# -------------------------------------------------------------------
+curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+unzip -q /tmp/awscliv2.zip -d /tmp
+/tmp/aws/install
+rm -rf /tmp/aws /tmp/awscliv2.zip
+
+# -------------------------------------------------------------------
+# Wait for the instance IAM role to be available via IMDS
+# -------------------------------------------------------------------
+echo "Waiting for instance IAM credentials to become available..."
+for i in $(seq 1 30); do
+  if aws sts get-caller-identity --region "$AWS_REGION" >/dev/null 2>&1; then
+    echo "IAM credentials available!"
+    break
+  fi
+  echo "  Not yet, retrying in 5s..."
+  sleep 5
+done
+
+# -------------------------------------------------------------------
+# Fetch TLS certificate and key from Secrets Manager
 # -------------------------------------------------------------------
 mkdir -p /etc/nginx/certs
-cat <<'CERTEOF' > /etc/nginx/certs/fullchain.pem
-${tls_fullchain}
-CERTEOF
 
-cat <<'KEYEOF' > /etc/nginx/certs/privkey.pem
-${tls_privkey}
-KEYEOF
+aws secretsmanager get-secret-value \
+  --secret-id "$TLS_FULLCHAIN_SECRET" \
+  --region "$AWS_REGION" \
+  --query 'SecretString' \
+  --output text > /etc/nginx/certs/fullchain.pem
 
-chmod 600 /etc/nginx/certs/privkey.pem
+aws secretsmanager get-secret-value \
+  --secret-id "$TLS_PRIVKEY_SECRET" \
+  --region "$AWS_REGION" \
+  --query 'SecretString' \
+  --output text > /etc/nginx/certs/privkey.pem
+
 chmod 644 /etc/nginx/certs/fullchain.pem
+chmod 600 /etc/nginx/certs/privkey.pem
+
+echo "TLS certificates retrieved from Secrets Manager."
 
 # ----------------------------
 #  mongosh (MongoDB Shell)
 # ----------------------------
-
 curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc \
   | gpg --dearmor \
   | tee /usr/share/keyrings/mongodb-server-8.0.gpg > /dev/null
@@ -52,14 +82,11 @@ EOF
 
 apt-get update
 apt-get install -y mongodb-mongosh
-
-# Verify installation
 mongosh --version
 
 # ----------------------------
 #  code-server
 # ----------------------------
-
 USER_NAME=ubuntu
 export HOME=/home/$USER_NAME
 
@@ -72,13 +99,11 @@ cert: false
 EOF
 
 curl -fsSL https://code-server.dev/install.sh | sh
-
 systemctl enable --now code-server@$USER_NAME
 
 # ----------------------------
 # Wait for code-server to be ready, then install extensions
 # ----------------------------
-
 echo "Waiting for code-server to be ready..."
 for i in $(seq 1 30); do
   if systemctl is-active --quiet code-server@$USER_NAME; then
@@ -109,7 +134,6 @@ sudo -u $USER_NAME code-server --install-extension vscjava.vscode-java-pack || t
 sudo -u $USER_NAME code-server --install-extension dbaeumer.vscode-eslint || true
 sudo -u $USER_NAME code-server --install-extension esbenp.prettier-vscode || true
 
-# Restart code-server so all extensions are fully loaded
 echo "Restarting code-server to load extensions..."
 systemctl restart code-server@$USER_NAME
 echo "Extensions installed and code-server restarted!"
