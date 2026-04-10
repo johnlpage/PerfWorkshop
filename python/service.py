@@ -10,6 +10,12 @@ logger = logging.getLogger(__name__)
   
 app = Flask(__name__)  
 client = MongoClient(os.environ.get("MONGODB_URI", "mongodb://localhost:27017"))  
+try:  
+    client.admin.command('ping')  
+    print("Successfully connected to MongoDB!")  
+except Exception as e:  
+    print(f"Failed to connect to MongoDB: {e}")  
+
 collection = client["streamdb"]["documents"]  
   
   
@@ -97,4 +103,5 @@ def get_customer_things(custid):
   
   
 if __name__ == "__main__":  
-    app.run(port=5050, processes=16, debug=False)  
+    #Multi process not multi thread due to GIL and Pymongo
+    app.run(port=5050, processes=16, threading=False , debug=False)  

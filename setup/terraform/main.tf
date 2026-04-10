@@ -275,7 +275,8 @@ resource "aws_instance" "dev" {
     aws_region           = data.aws_region.current.name
     tls_fullchain_secret = "code-mongosa-net/tls-fullchain"
     tls_privkey_secret   = "code-mongosa-net/tls-privkey"
-    mongodb_uri          = mongodbatlas_advanced_cluster.perfworkshop.connection_strings[0].standard_srv  
+    mongodb_uri = "${mongodbatlas_advanced_cluster.perfworkshop.connection_strings[0].standard_srv}/?authSource=%24external&authMechanism=MONGODB-AWS"  
+
   })
 
   tags = {
