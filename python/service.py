@@ -32,4 +32,5 @@ def ping():
     return true;
   
 if __name__ == "__main__":  
-    app.run(port=5050)  
+    app.run(port=5050, processes=16, debug=False)  
+ 

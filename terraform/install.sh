@@ -156,13 +156,23 @@ apt-get install -y openjdk-21-jdk
 apt-get install -y apache2-utils
 
 # Get the sample code
-cd /home/ubuntu
+mkdir -p /home/ubuntu/.setup
+cd /home/ubuntu/
+chown ubuntu:ubuntu /home/ubuntu/.setup
+
+
+# Download everything
 sudo -u ubuntu git clone https://github.com/johnlpage/PerfWorkshop.git
-cd /home/ubuntu/PerfWorkshop
+cd /home/ubuntu/.setup/PerfWorkshop
 sudo -u ubuntu git remote remove origin
 
+cp /home/ubuntu/.setup/PerfWorkshop/.vscode/settings.json /home/ubuntu/.local/share/code-server/User/settings.json
+
+#Shuffle and setup
 sudo -u ubuntu bash << 'PEOF'
-cd /home/ubuntu/PerfWorkshop/python
+cp -rp /home/ubuntu/.setup/PerfWorkshop/python /home/ubuntu/python
+cp -rp /home/ubuntu/.setup/PerfWorkshop/.vscode /home/ubuntu/python/.vscode
+cd /home/ubuntu/python
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
