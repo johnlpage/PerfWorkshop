@@ -9,14 +9,17 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)  
   
 app = Flask(__name__)  
-client = MongoClient(os.environ.get("MONGODB_URI", "mongodb://localhost:27017"))  
-try:  
-    client.admin.command('ping')  
-    print("Successfully connected to MongoDB!")  
-except Exception as e:  
-    print(f"Failed to connect to MongoDB: {e}")  
 
-collection = client["streamdb"]["documents"]  
+
+client = MongoClient(os.environ.get("MONGODB_URI", "mongodb://localhost:27017"))  
+collection = client["unter"]["events"]  
+try:  
+    client.admin.command('ping') 
+    count = collection.estimated_document_count();
+    logger.info(f"Successfully connected to MongoDB! Current document count: {count}")  
+except Exception as e:  
+    logger.cinfo(f"Failed to connect to MongoDB: {e}")  
+
   
   
 @app.route("/ping", methods=["GET"])  
@@ -24,7 +27,7 @@ def ping():
     return jsonify({"status": "ok"})  
   
   
-@app.route("/things", methods=["POST"])  
+@app.route("/events", methods=["POST"])  
 def insert():  
     count = 0  
     for line in request.stream:  
@@ -41,7 +44,7 @@ def insert():
     return jsonify({"inserted": count},201)  
   
 
-@app.route("/things", methods=["PUT"])  
+@app.route("/events", methods=["PUT"])  
 def replace():  
     count = 0  
     for line in request.stream:  
@@ -59,7 +62,7 @@ def replace():
   
 
 
-@app.route("/things", methods=["PATCH"])  
+@app.route("/events", methods=["PATCH"])  
 def update():  
     count = 0  
     for line in request.stream:  
@@ -82,8 +85,8 @@ def update():
 
   
   
-# GET /things/<id> - Fetch a thing by ID  
-@app.route("/things/<id>", methods=["GET"])  
+# GET /events/<id> - Fetch a thing by ID  
+@app.route("/events/<id>", methods=["GET"])  
 def get_thing(id):  
     doc = collection.find_one({"_id": ObjectId(id)})  
     if not doc:  
@@ -92,9 +95,9 @@ def get_thing(id):
     return jsonify(doc)  
   
   
-# GET /customers/<custid>/things - Fetch things for a specific customer  
-@app.route("/customers/<custid>/things", methods=["GET"])  
-def get_customer_things(custid):  
+# GET /customers/<custid>/events - Fetch events for a specific customer  
+@app.route("/customers/<custid>/events", methods=["GET"])  
+def get_customer_events(custid):  
     limit = request.args.get("limit", 10, type=int)  
     docs = list(collection.find({"custid": custid}).limit(limit))  
     for doc in docs:  
@@ -104,4 +107,4 @@ def get_customer_things(custid):
   
 if __name__ == "__main__":  
     #Multi process not multi thread due to GIL and Pymongo
-    app.run(port=5050, processes=16, threading=False , debug=False)  
+    app.run(port=5050, processes=16, threaded=False , debug=False)  
