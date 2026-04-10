@@ -14,7 +14,9 @@
             "**/.vscode":true,
             "**/venv":true,
             "**/node_modules":true,
-            "**/__pycache__":true
+            "**/__pycache__":true,
+            "setup":true,
+            "venv":true
     },
      "terminal.integrated.defaultLocation": "editor"  
 }  
