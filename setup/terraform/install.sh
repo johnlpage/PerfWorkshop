@@ -96,7 +96,7 @@ bind-addr: 127.0.0.1:8080
 auth: password
 password: ${code_server_password}
 cert: false
-welcome-text: "Welcome to MongoDB Performance Workshop. Enter your lab key."  
+welcome-text: "Welcome to MongoDB Performance Workshop. Enter your lab key."
 EOF
 
 curl -fsSL https://code-server.dev/install.sh | sh
@@ -155,12 +155,17 @@ apt-get install -y openjdk-21-jdk
 
 apt-get install -y apache2-utils
 
-# Get the sample code
+#Get Code and settings from the repo
+
+sudo -u ubuntu bash << 'GEOF'
 cd /home/ubuntu
-# Download everything
-sudo -u ubuntu git clone https://github.com/johnlpage/PerfWorkshop.git .
-#Disconnect from the repo to avoid confusion with git commands in the future
-sudo -u ubuntu git remote remove origin
+git init
+git remote add origin https://github.com/johnlpage/PerfWorkshop.git
+git fetch origin
+git checkout origin/main -- .
+rm -rf .git
+GEOF
+
 
 cp /home/ubuntu/setup/vscode/settings.json /home/ubuntu/.local/share/code-server/User/settings.json
 
@@ -214,3 +219,15 @@ ln -sf /etc/nginx/sites-available/code-server /etc/nginx/sites-enabled/code-serv
 nginx -t
 systemctl enable nginx
 systemctl restart nginx
+
+# ----------------------------
+# Set MONGODB_URI for all shells
+# ----------------------------
+# ----------------------------
+# Set MONGODB_URI for all ubuntu shells
+# ----------------------------
+sudo -u ubuntu bash << 'ENVEOF'
+echo 'export MONGODB_URI="${mongodb_uri}"' >> /home/ubuntu/.bashrc
+ENVEOF
+
+
