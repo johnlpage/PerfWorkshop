@@ -61,9 +61,8 @@ def insert():
   
         collection.insert_one(doc)  
         count = count + 1
-  
-  
-    return jsonify({"inserted": count}), 201  
+        
+    return jsonify({"inserted": count}), 201
 
 
 
