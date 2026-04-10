@@ -5,11 +5,11 @@ Each webservice supports the following endpoints:
 | Method | Endpoint | Description |  
 |--------|----------|-------------|  
 | `GET` | `/ping` | Check the service is up |  
-| `POST` | `/things` | Insert one or more thing records |  
-| `PUT` | `/things` | Replace one or more thing records |  
-| `PATCH` | `/things` | Update part of one or more thing records |  
-| `GET` | `/things/<id>` | Fetch a thing by ID |  
-| `GET` | `/customers/<custid>/things?limit=10` | Fetch things for a specific customer |  
+| `POST` | `/events` | Insert one or more thing records |  
+| `PUT` | `/events` | Replace one or more thing records |  
+| `PATCH` | `/events` | Update part of one or more thing records |  
+| `GET` | `/events/<id>` | Fetch a thing by ID |  
+| `GET` | `/customers/<custid>/events?limit=10` | Fetch events for a specific customer |  
 
   
 ## Getting Started  
@@ -27,5 +27,10 @@ Then Bulk load the supplied data to see how it goes. Note the time it takes
 you wanto load as fast as possible (but the data needs to work in the next few tests too
 
 ```
-time curl -X POST -H "Content-Type: application/json" -d @data.json http://localhost:8080/load  
+time curl -X POST \
+  -T contact_records.json \
+  -H "Transfer-Encoding: chunked" \
+  -H "Content-Type: application/octet-stream"  \
+  --progress-bar \
+  http://localhost:5050/events
 ```

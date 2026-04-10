@@ -231,3 +231,17 @@ echo 'export MONGODB_URI="${mongodb_uri}"' >> /home/ubuntu/.bashrc
 ENVEOF
 
 
+wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg
+  
+# 2. Add the MongoDB repository  
+echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs)/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+  
+
+# Generate sample data
+
+
+sudo -u ubuntu bash << 'GSD'
+cd /home/ubuntu
+source venv/bin/activate
+python setup/sampledata/unter.py
+GSD
