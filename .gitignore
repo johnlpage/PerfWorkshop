@@ -103,3 +103,4 @@ Thumbs.db
 *.tmp  
 *.bak  
 *.pid  
+setup/terraform/.terraform.tfstate.lock.info
