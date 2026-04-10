@@ -235,7 +235,8 @@ wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg --dearmo
   
 # 2. Add the MongoDB repository  
 echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs)/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
-  
+
+apt install -y mongodb-database-tools  
 
 # Generate sample data
 
