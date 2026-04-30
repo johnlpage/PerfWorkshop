@@ -40,22 +40,40 @@ You *must* set up an Atlas API Key for your project and make sure your IP
 address in the access control list. You also need to set the environment 
 variable `TF_VAR_atlas_project_id` with your project ID
 
+Mac/Linux
 ```
 export MONGODB_ATLAS_PUBLIC_KEY=
 export MONGODB_ATLAS_PRIVATE_KEY=
+export TF_VAR_atlas_project_id=
+```
+
+Powershell
+
+```
+$Env:MONGODB_ATLAS_PUBLIC_KEY=
+$Env:MONGODB_ATLAS_PRIVATE_KEY=
+$Env:TF_VAR_atlas_project_id=
 ```
 
 You must set your AWS API Keys from the AWS Tile on 
 [corp.mongodb.com](corp.mongodb.com) These are 
 
+### Mac/Linux
+
 ```
 export AWS_ACCESS_KEY_ID=
 export AWS_SECRET_ACCESS_KEY=
 export AWS_SESSION_TOKEN=
-
 ```
 
-Download the test file/zoom
+### Powershell 
+```
+$Env:AWS_ACCESS_KEY_ID=
+$Env:AWS_SECRET_ACCESS_KEY=
+$Env:AWS_SESSION_TOKEN=
+```
+
+## Download the test file
 
 ```
 curl https://raw.githubusercontent.com/johnlpage/PerfWorkshop/refs/heads/main/setup/tfinstall/main.tf
