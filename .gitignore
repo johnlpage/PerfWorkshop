@@ -104,3 +104,4 @@ Thumbs.db
 *.bak  
 *.pid  
 setup/terraform/.terraform.tfstate.lock.info
+setup/tfinstall/.terraform.lock.hcl
