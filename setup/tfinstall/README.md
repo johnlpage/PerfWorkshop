@@ -55,6 +55,18 @@ export AWS_SESSION_TOKEN=
 
 ```
 
+Download the test fiel
+
+```
+curl https://raw.githubusercontent.com/johnlpage/PerfWorkshop/refs/heads/main/setup/tfinstall/main.tf
+```
+
+or , if you are in Powershell on Windows 
+
+```
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/johnlpage/PerfWorkshop/refs/heads/main/setup/tfinstall/main.tf" -OutFile "main.tf"
+```
+
 Now run
 
 ```
