@@ -119,6 +119,7 @@ echo "code-server is up!"
 
 # General
 sudo -u $USER_NAME code-server --install-extension PKief.material-icon-theme || true
+sudo -u $USER_NAME code-server --install-extension formulahendry.code-runner || true
 
 # Python
 sudo -u $USER_NAME code-server --install-extension ms-python.python || true
@@ -134,6 +135,8 @@ sudo -u $USER_NAME code-server --install-extension vscjava.vscode-java-pack || t
 # JavaScript/TypeScript
 sudo -u $USER_NAME code-server --install-extension dbaeumer.vscode-eslint || true
 sudo -u $USER_NAME code-server --install-extension esbenp.prettier-vscode || true
+
+
 
 echo "Restarting code-server to load extensions..."
 systemctl restart code-server@$USER_NAME

@@ -2,7 +2,7 @@
 
 ## AWS
 
-Get these from yoyr AWS tiles
+Get these from your AWS tiles
 ```
 export AWS_ACCESS_KEY_ID="XXXXXXX"
 export AWS_SECRET_ACCESS_KEY="XXXXXXXXXX"
