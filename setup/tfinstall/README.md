@@ -55,7 +55,7 @@ export AWS_SESSION_TOKEN=
 
 ```
 
-Download the test fiel
+Download the test file/zoom
 
 ```
 curl https://raw.githubusercontent.com/johnlpage/PerfWorkshop/refs/heads/main/setup/tfinstall/main.tf
