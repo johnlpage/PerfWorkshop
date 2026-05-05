@@ -105,3 +105,7 @@ Thumbs.db
 *.pid  
 setup/terraform/.terraform.tfstate.lock.info
 setup/tfinstall/.terraform.lock.hcl
+setup/sampledata/contact_records.json
+setup/sampledata/contact_records.json
+setup/sampledata/contact_records.json
+setup/sampledata/contact_records.json

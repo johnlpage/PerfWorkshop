@@ -1,19 +1,25 @@
 #!/bin/bash
 
+
+if command -v gtimeout &> /dev/null; then
+    TIMEOUT_CMD="gtimeout"
+else
+    TIMEOUT_CMD="timeout"
+fi
+
 # Configuration
-URL_BASE="http://localhost:5050"
-URL_EVENTS="${URL_BASE}/events"
+URL_BASE="http://127.0.0.1:5050"
+URL_contacts="${URL_BASE}/contacts"
 URL_PING="${URL_BASE}/ping"
 DATA_FILE="contact_records.json"
+#Stop any test after 1 minute 
 MAX_TIME=60
 
 echo "-------------------------------------------------------"
 echo "Step 0: Pre-flight Check (Service Availability)"
 echo "-------------------------------------------------------"
 
-# Use curl to check if the service is up. 
-# --silent (no output), --head (just headers), --fail (exit non-zero on 4xx/5xx)
-if ! curl --silent --head --fail "$URL_PING" > /dev/null; then
+if ! curl --silent --head --fail --max-time 5 "$URL_PING" > /dev/null; then
     echo "[!] CRITICAL ERROR: Service at $URL_PING is unreachable."
     echo "[!] Aborting all tests."
     exit 1
@@ -21,23 +27,25 @@ fi
 
 echo "[+] Service is UP. Proceeding with benchmarks..."
 
+
 echo -e "\n-------------------------------------------------------"
-echo "Step 1: Large File Upload (Single Request)"
+echo "Step 1: Micro Batch File Upload (Single Request)"
 echo "-------------------------------------------------------"
 
-# Wrap 'time' and 'curl' in the 'timeout' command.
-timeout ${MAX_TIME}s time -p curl -X POST \
-  -T "$DATA_FILE" \
+# --max-time (or -m) handles the timeout natively within curl
+# Exit code 28 is the specific code for a timeout
+time -p curl -X POST \
+  -T "$DATA_FILE.small" \
   -H "Transfer-Encoding: chunked" \
   -H "Content-Type: application/octet-stream" \
+  --max-time ${MAX_TIME} \
   --progress-bar \
-  "$URL_EVENTS"
+  "$URL_contacts"
 
-# Capture the exit status of the previous command
 RESULT=$?
 
-if [ $RESULT -eq 124 ]; then
-    echo -e "\n[!] ERROR: Upload exceeded ${MAX_TIME}s and was killed."
+if [ $RESULT -eq 28 ]; then
+    echo -e "\n[!] ERROR: Upload exceeded ${MAX_TIME}s limit (Curl Timeout)."
 elif [ $RESULT -ne 0 ]; then
     echo -e "\n[!] ERROR: Curl failed with exit code $RESULT."
 else
@@ -45,18 +53,106 @@ else
 fi
 
 echo -e "\n-------------------------------------------------------"
-echo "Step 2: High Concurrency Ping (Apache Benchmark)"
+echo "Step 2: Large Initial File Upload (Single Request)"
 echo "-------------------------------------------------------"
 
-# -s defines the timeout per request in ab (in seconds)
-# timeout wraps the entire execution
-timeout ${MAX_TIME}s ab -n 10000 -c 20 -s $MAX_TIME "$URL_PING"
+# --max-time (or -m) handles the timeout natively within curl
+# Exit code 28 is the specific code for a timeout
+$TIMEOUT_CMD ${MAX_TIME}s time -p curl -X POST \
+  -T "$DATA_FILE" \
+  -H "Transfer-Encoding: chunked" \
+  -H "Content-Type: application/octet-stream" \
+  --max-time ${MAX_TIME} \
+  --progress-bar \
+  "$URL_contacts"
 
-if [ $? -eq 124 ]; then
-    echo -e "\n[!] ERROR: Benchmark exceeded ${MAX_TIME}s total and was killed."
+RESULT=$?
+
+if [ $RESULT -eq 28 ]; then
+    echo -e "\n[!] ERROR: Upload exceeded ${MAX_TIME}s limit (Curl Timeout)."
+elif [ $RESULT -ne 0 ]; then
+    echo -e "\n[!] ERROR: Curl failed with exit code $RESULT."
 else
-    echo -e "\n[+] Benchmark completed."
+    echo -e "\n[+] Upload completed successfully."
 fi
+
+echo -e "\n-------------------------------------------------------"
+echo "Step 3: Testing fetching recent contacts from customer"
+echo "-------------------------------------------------------"
+
+
+# -s defines the timeout per individual request
+BY_CUSTOMER="$URL_BASE/customers/cstXXXXXX/contacts"
+$TIMEOUT_CMD ${MAX_TIME}s ab -n 10000 -c 20 -l -s ${MAX_TIME} "$BY_CUSTOMER"
+
+RESULT=$?
+
+if [ $RESULT -eq 124 ]; then
+    echo -e "\n[!] ERROR: Benchmark timed out before completing 10,000 requests."
+else
+    echo -e "\n[+] Benchmark finished (completed 10,000 requests or server closed connection)."
+fi
+
+
+
+echo -e "\n-------------------------------------------------------"
+echo "Step 3: Testing fetching recent contacts about driver"
+echo "-------------------------------------------------------"
+
+
+# -s defines the timeout per individual request
+BY_DRIVER="$URL_BASE/drivers/drvXXXXXX/contacts"
+
+$TIMEOUT_CMD ${MAX_TIME}s ab -n 10000 -c 20 -l -s ${MAX_TIME} "$BY_DRIVER"
+
+RESULT=$?
+
+if [ $RESULT -eq 124 ]; then
+    echo -e "\n[!] ERROR: Benchmark timed out before completing 10,000 requests."
+else
+    echo -e "\n[+] Benchmark finished (completed 10,000 requests or server closed connection)."
+fi
+
+
+echo -e "\n-------------------------------------------------------"
+echo "Step 3: Testing adding random comments to contacts"
+echo "-------------------------------------------------------"
+
+
+# -s defines the timeout per individual request
+COMMENT_URL="$URL_BASE/contact/id/comments"
+echo "Comment: This test simulates adding random comments to contacts" > comment.txt
+$TIMEOUT_CMD ${MAX_TIME}s ab -n 10000 -c 20  -p comment.txt  -T "application/json" $COMMENT_URL
+
+RESULT=$?
+
+if [ $RESULT -eq 124 ]; then
+    echo -e "\n[!] ERROR: Benchmark timed out before completing 10,000 requests."
+else
+    echo -e "\n[+] Benchmark finished (completed 10,000 requests or server closed connection)."
+fi
+
+echo -e "\n-------------------------------------------------------"
+echo "Step 4: Driver Rating Averages (Aggregation Performance)"
+echo "-------------------------------------------------------"
+
+STATS_URL="$URL_BASE/drivers/stats/averages"
+ITERATIONS=5
+TOTAL_TIME=0
+
+for i in $(seq 1 $ITERATIONS); do
+    # Get time_total in seconds (e.g., 0.452)
+    TIME=$(curl -s -o /dev/null -w "%{time_total}" "$STATS_URL")
+    
+    # Convert to ms for readability
+    MS=$(echo "$TIME * 1000 / 1" | bc)
+    echo "Run $i: ${MS}ms"
+    
+    TOTAL_TIME=$(echo "$TOTAL_TIME + $TIME" | bc)
+done
+
+AVG=$(echo "scale=3; ($TOTAL_TIME / $ITERATIONS) * 1000" | bc)
+echo -e "\n[+] Mean Aggregation Time: ${AVG}ms"
 
 echo -e "\n-------------------------------------------------------"
 echo "All tests finished."

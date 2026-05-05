@@ -13,8 +13,8 @@ NUM_RECORDS = 5_000_000  # Adjust as needed
 OUTPUT_FILE = "contact_records.json"
 
 # Constants
-NUM_CUSTOMERS = 1_000_000
-NUM_VEHICLES = 50_000
+NUM_CUSTOMERS = 400_000
+NUM_VEHICLES = 20_000
 NUM_DRIVERS = 25_000
 NUM_LOCATIONS = 10_000
 
@@ -55,23 +55,20 @@ CITIES = [
 
 VEHICLE_TYPES = ["sedan", "suv", "van", "luxury", "electric", "hybrid", "minivan"]
 
-
 def generate_records(num_records: int, output_file: str):
-    """Generate contact records with ascending dates over the past month."""
+    """Generate contact records with random (non-ordered) dates over the past 6 months."""
 
     now = datetime.utcnow()
-    start_date = now - timedelta(days=30)
+    start_date = now - timedelta(days=180)
     total_seconds = int((now - start_date).total_seconds())
 
-    # Generate sorted random offsets for ascending dates
-    print(f"Generating {num_records:,} timestamp offsets...", file=sys.stderr)
-    offsets = sorted(random.randint(0, total_seconds) for _ in range(num_records))
-
-    print(f"Writing records to {output_file}...", file=sys.stderr)
+    print(f"Writing {num_records:,} records to {output_file}...", file=sys.stderr)
     written = 0
 
     with open(output_file, "w") as f:
-        for i, offset in enumerate(offsets):
+        for i in range(num_records):
+            # Generate a random offset for each record individually (no sorting)
+            offset = random.randint(0, total_seconds)
             record_time = start_date + timedelta(seconds=offset)
 
             customer_id = f"cst{random.randint(1, NUM_CUSTOMERS):08d}"
@@ -85,22 +82,17 @@ def generate_records(num_records: int, output_file: str):
             status = random.choice(CONTACT_STATUSES)
             sentiment = random.choice(SENTIMENTS)
 
-            # Star rating: weight toward 3-5 but allow 1-2
             star_rating = random.choices(
                 population=[1, 2, 3, 4, 5],
                 weights=[5, 10, 20, 35, 30],
                 k=1
             )[0]
 
-            # Trip length in minutes (most trips 5-60 min, some longer)
             trip_length_minutes = round(random.lognormvariate(2.8, 0.6), 1)
             trip_length_minutes = max(2.0, min(trip_length_minutes, 180.0))
-
-            # Trip distance in miles (correlated loosely with duration)
-            avg_speed = random.uniform(8, 35)  # mph in city
+            avg_speed = random.uniform(8, 35)
             trip_distance_miles = round((trip_length_minutes / 60) * avg_speed, 2)
 
-            # Fare
             base_fare = 2.50
             per_mile = random.uniform(1.50, 3.50)
             per_minute = random.uniform(0.20, 0.50)
@@ -111,13 +103,11 @@ def generate_records(num_records: int, output_file: str):
             )[0]
             fare_amount = round((base_fare + per_mile * trip_distance_miles + per_minute * trip_length_minutes) * surge, 2)
 
-            # Resolution (only if status is resolved or closed)
             resolution = None
             if status in ("resolved", "closed"):
                 resolution = random.choice([r for r in RESOLUTION_TYPES if r is not None])
 
-            # Response time in minutes
-            response_time_minutes = round(random.expovariate(1 / 45), 1)  # mean ~45 min
+            response_time_minutes = round(random.expovariate(1 / 45), 1)
             response_time_minutes = max(1.0, min(response_time_minutes, 1440.0))
 
             vehicle_type = random.choice(VEHICLE_TYPES)
@@ -151,7 +141,7 @@ def generate_records(num_records: int, output_file: str):
                 "star_rating": star_rating,
                 "driver_rating": {
                     "driver_id": driver_id,
-                    "rating": star_rating,  # could differ, but let's keep correlated
+                    "rating": star_rating,
                     "driver_lifetime_avg_rating": round(random.uniform(3.5, 5.0), 2),
                     "driver_total_trips": random.randint(50, 20000),
                 },
@@ -164,6 +154,7 @@ def generate_records(num_records: int, output_file: str):
                 print(f"  ...{written:,} records written", file=sys.stderr)
 
     print(f"Done! {written:,} records written to {output_file}", file=sys.stderr)
+
 
 
 if __name__ == "__main__":

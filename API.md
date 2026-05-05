@@ -1,6 +1,9 @@
 ## API Endpoints  
   
 Each webservice supports the following endpoints:  
+
+**To aid testing the service itself will chose values regardless of what URL
+contains**
   
 | Method | Endpoint | Description |  
 |--------|----------|-------------|  
