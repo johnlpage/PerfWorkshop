@@ -1,0 +1,20 @@
+{
+  "name": "unter-node",
+  "version": "1.0.0",
+  "description": "Node.js + Express version of the Unter contacts service",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "mongodb": "^6.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

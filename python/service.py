@@ -25,7 +25,7 @@ collection = None
 def pre_flight():
     global client, collection
     client = MongoClient(
-        os.environ.get("MONGODB_URI", "mongodb://root:2efdaf4b59@localhost:27017")
+        os.environ.get("MONGODB_URI", "mongodb://root:xxxxx@localhost:27017")
     )
     collection = client["unter"]["contacts"]
     client.admin.command("ping")
@@ -40,7 +40,7 @@ def pre_flight():
 def init_db(server, worker):
     global client, collection
     client = MongoClient(
-        os.environ.get("MONGODB_URI", "mongodb://root:2efdaf4b59@localhost:27017")
+        os.environ.get("MONGODB_URI", "mongodb://root:xxxxx@localhost:27017")
     )
     collection = client["unter"]["contacts"]
 
