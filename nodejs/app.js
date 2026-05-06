@@ -142,28 +142,28 @@ app.get('/drivers/stats/averages', async (req, res) => {
     }
 });
 
-// Bootstrapper
+const startServer = async () => {
+    try {
+        const { collection } = await connectDb();
 
-// Updated Bootstrapper
-if (cluster.isMaster) {
-    (async () => {
-        const { collection: setupCol } = await connectDb();
-        
-        // --- ADDED THIS PART ---
-        const count = await setupCol.estimatedDocumentCount();
-        console.log(`Preflight check: Connected to MongoDB! Document count: ${count}`);
-        // -----------------------
+        // 1. Preflight check (Only runs once when the process starts)
+        const count = await collection.estimatedDocumentCount();
+        console.log(`Connected to MongoDB! Documents: ${count}`);
 
-        console.log("Ensuring required indexes...");
-        await setupCol.createIndex({ contact_id: 1 }, { unique: true });
-        await setupCol.createIndex({ customer_id: 1 });
-        await setupCol.createIndex({ "driver_rating.driver_id": 1 });
-        
-        const numWorkers = 4; 
-        for (let i = 0; i < numWorkers; i++) cluster.fork();
-    })();
-} else {
-    connectDb().then(() => {
-        app.listen(PORT, () => console.log(`Worker ${process.pid} listening on ${PORT}`));
-    });
-}
+        // 2. Ensure Indexes
+        // Note: MongoDB handles "createIndex" gracefully if they already exist
+        await collection.createIndex({ contact_id: 1 }, { unique: true });
+        await collection.createIndex({ customer_id: 1 });
+        await collection.createIndex({ "driver_rating.driver_id": 1 });
+
+        // 3. Start the App
+        app.listen(PORT, () => {
+            console.log(`Process ${process.pid} listening on ${PORT}`);
+        });
+    } catch (err) {
+        console.error("Failed to start:", err);
+        process.exit(1);
+    }
+};
+
+startServer();
