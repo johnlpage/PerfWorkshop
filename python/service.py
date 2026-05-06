@@ -125,7 +125,7 @@ def get_driver_contacts(driverid):
 app.route("/contacts/<id>/comments", methods=["POST"])
 def add_comment(id):
 
-    id = f"cnt{random.randint(1, NUM_RECORDS):08d}"
+    id = f"cnt{random.randint(1, NUM_RECORDS):010d}"
     # Extract the comment string from the POST body
     # Using request.get_data(as_text=True) to get the raw string
     comment = request.get_data(as_text=True)

@@ -120,7 +120,7 @@ echo "-------------------------------------------------------"
 
 
 # -s defines the timeout per individual request
-COMMENT_URL="$URL_BASE/contact/id/comments"
+COMMENT_URL="$URL_BASE/contacts/id/comments"
 echo "Comment: This test simulates adding random comments to contacts" > comment.txt
 $TIMEOUT_CMD ${MAX_TIME}s ab -n 10000 -c 20  -p comment.txt  -T "application/json" $COMMENT_URL
 

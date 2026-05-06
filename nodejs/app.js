@@ -9,7 +9,7 @@ const NUM_CUSTOMERS = 400_000;
 const NUM_DRIVERS = 25_000;
 const NUM_RECORDS = 5_000_000;
 const PORT = process.env.PORT || 5050;
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://root:2efdaf4b59@localhost:27017";
+const MONGO_URI = process.env.MONGODB_URI || "mongodb://root:xxxx@localhost:27017";
 
 let db, collection;
 
@@ -71,6 +71,63 @@ app.get('/customers/:custid/contacts', async (req, res) => {
     res.json(docs);
 });
 
+
+// GET driver contacts
+app.get('/drivers/:driverid/contacts', async (req, res) => {
+    // Hardcode a random value to match your Python test logic
+    const driverid = `drv${String(Math.floor(Math.random() * NUM_DRIVERS) + 1).padStart(8, '0')}`;
+    
+    let dateStr = req.query.fromDate;
+    let filterDate;
+    if (dateStr) {
+        filterDate = `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
+    } else {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        filterDate = d.toISOString().split('T')[0];
+    }
+
+    const mongoQuery = {
+        "driver_rating.driver_id": driverid,
+        "timestamp": { "$gte": filterDate }
+    };
+
+    const docs = await collection.find(mongoQuery).toArray();
+    res.json(docs);
+});
+
+// Use express.text() as middleware specifically for this route
+app.post('/contacts/:id/comments', express.text({ type: '*/*' }), async (req, res) => {
+    
+    // Match Python's random ID logic
+    const id = `cnt${String(Math.floor(Math.random() * NUM_RECORDS) + 1).padStart(10, '0')}`;
+    
+    // ab sends data in the body
+    const comment = req.body;
+    
+    if (!comment || Object.keys(comment).length === 0) {
+        return res.status(400).json({ error: "No comment provided" });
+    }
+
+    try {
+        const result = await collection.updateOne(
+            { "contact_id": id },
+            { "$push": { "notes": comment } }
+        );
+
+        if (result.matchedCount === 0) {
+            // This returns a 404 if the random ID doesn't exist in your DB
+            return res.status(404).json({ error: `Record ${id} not found` });
+        }
+
+        res.status(200).json({ status: "success" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+
 app.get('/drivers/stats/averages', async (req, res) => {
     const pipeline = [
         { $group: { _id: "$driver_rating.driver_id", average_rating: { $avg: "$driver_rating.rating" }, total_trips: { $sum: 1 } } },
@@ -86,15 +143,23 @@ app.get('/drivers/stats/averages', async (req, res) => {
 });
 
 // Bootstrapper
+
+// Updated Bootstrapper
 if (cluster.isMaster) {
     (async () => {
         const { collection: setupCol } = await connectDb();
-        console.log("Ensuring indexes...");
+        
+        // --- ADDED THIS PART ---
+        const count = await setupCol.estimatedDocumentCount();
+        console.log(`Preflight check: Connected to MongoDB! Document count: ${count}`);
+        // -----------------------
+
+        console.log("Ensuring required indexes...");
         await setupCol.createIndex({ contact_id: 1 }, { unique: true });
         await setupCol.createIndex({ customer_id: 1 });
         await setupCol.createIndex({ "driver_rating.driver_id": 1 });
         
-        const numWorkers = 4; // Matching your Python gunicorn config
+        const numWorkers = 4; 
         for (let i = 0; i < numWorkers; i++) cluster.fork();
     })();
 } else {
