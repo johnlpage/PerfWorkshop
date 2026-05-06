@@ -9,7 +9,7 @@ const NUM_CUSTOMERS = 400_000;
 const NUM_DRIVERS = 25_000;
 const NUM_RECORDS = 5_000_000;
 const PORT = process.env.PORT || 5050;
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://root:xxxx@localhost:27017";
+const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017";
 
 let db, collection;
 
