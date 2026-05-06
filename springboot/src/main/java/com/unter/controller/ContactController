@@ -1,0 +1,141 @@
+package com.unter.controller;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.client.result.UpdateResult;
+import com.unter.model.Contact;
+import com.unter.model.DriverStat;
+import com.unter.repository.ContactRepository;
+import com.unter.util.Utils;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+@RestController
+public class ContactController {
+
+    private static final int NUM_CUSTOMERS = 400_000;
+    private static final int NUM_DRIVERS = 25_000;
+    private static final int NUM_RECORDS = 5_000_000;
+    
+    private final ContactRepository contactRepository;
+    private final MongoTemplate mongoTemplate;
+    private final ObjectMapper objectMapper;
+    private final Random rand = new Random();
+
+    public ContactController(ContactRepository contactRepository, MongoTemplate mongoTemplate, ObjectMapper objectMapper) {
+        this.contactRepository = contactRepository;
+        this.mongoTemplate = mongoTemplate; // Kept for Aggregations and atomic Array updates
+        this.objectMapper = objectMapper;
+    }
+
+    @GetMapping("/ping")
+    public Map<String, String> ping() {
+        return Map.of("status", "ok");
+    }
+
+    @PostMapping(value = "/contacts")
+    public ResponseEntity<?> uploadContacts(HttpServletRequest request) {
+        long startTime = System.currentTimeMillis();
+        long contentLength = request.getContentLengthLong();
+        long bytesProcessed = 0;
+        long count = 0;
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(request.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+                
+                bytesProcessed += line.getBytes(StandardCharsets.UTF_8).length + 1;
+                
+                Contact contact = objectMapper.readValue(line, Contact.class);
+                contactRepository.insert(contact);
+                count++;
+
+                Utils.progress(count, startTime, contentLength, bytesProcessed, 1000);
+            }
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("inserted", count));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/contacts/{id}")
+    public ResponseEntity<?> getContactById(@PathVariable String id) {
+        try {
+            return contactRepository.findById(id)
+                    .map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid ID format"));
+        }
+    }
+
+    @GetMapping("/customers/{custid}/contacts")
+    public List<Contact> getCustomerContacts(@PathVariable String custid, @RequestParam(required = false) String fromDate) {
+        custid = String.format("cst%08d", rand.nextInt(NUM_CUSTOMERS) + 1);
+        return contactRepository.findByCustomerIdAndTimestampGreaterThanEqual(custid, parseDate(fromDate));
+    }
+
+    @GetMapping("/drivers/{driverid}/contacts")
+    public List<Contact> getDriverContacts(@PathVariable String driverid, @RequestParam(required = false) String fromDate) {
+        driverid = String.format("drv%08d", rand.nextInt(NUM_DRIVERS) + 1);
+        return contactRepository.findByDriverRatingDriverIdAndTimestampGreaterThanEqual(driverid, parseDate(fromDate));
+    }
+
+    @PostMapping("/contacts/{id}/comments")
+    public ResponseEntity<?> addComment(@PathVariable String id, @RequestBody(required = false) String comment) {
+        id = String.format("cnt%010d", rand.nextInt(NUM_RECORDS) + 1);
+
+        if (comment == null || comment.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No comment provided"));
+        }
+
+        // MongoTemplate is preferred here to perform an atomic $push without fetching the document first
+        Query query = new Query(Criteria.where("contactId").is(id));
+        Update update = new Update().push("notes", comment);
+        UpdateResult result = mongoTemplate.updateOne(query, update, Contact.class);
+
+        if (result.getMatchedCount() == 0) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Record " + id + " not found"));
+        }
+        return ResponseEntity.ok(Map.of("status", "success"));
+    }
+
+    @GetMapping("/drivers/stats/averages")
+    public List<DriverStat> getDriverStats() {
+        // Aggregations are also best kept using MongoTemplate
+        Aggregation aggregation = Aggregation.newAggregation(
+                Aggregation.group("driverRating.driverId")
+                        .avg("driverRating.rating").as("averageRating")
+                        .count().as("totalTrips"),
+                Aggregation.match(Criteria.where("_id").ne(null)),
+                Aggregation.sort(Sort.Direction.DESC, "averageRating")
+        );
+
+        AggregationResults<DriverStat> results = mongoTemplate.aggregate(aggregation, "contacts", DriverStat.class);
+        return results.getMappedResults();
+    }
+
+    private String parseDate(String dateStr) {
+        if (dateStr != null && dateStr.length() >= 8) {
+            return String.format("%s-%s-%s", dateStr.substring(0, 4), dateStr.substring(4, 6), dateStr.substring(6, 8));
+        }
+        return LocalDate.now().minusDays(30).toString();
+    }
+}
