@@ -109,7 +109,7 @@ public class ContactController {
         // MongoTemplate is preferred here to perform an atomic $push without fetching the document first
         Query query = new Query(Criteria.where("contactId").is(id));
         Update update = new Update().push("notes", comment);
-        UpdateResult result = mongoTemplate.updateOne(query, update, Contact.class);
+        UpdateResult result = mongoTemplate.updateFirst(query, update, Contact.class);
 
         if (result.getMatchedCount() == 0) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Record " + id + " not found"));
