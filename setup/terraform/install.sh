@@ -248,4 +248,7 @@ sudo -u ubuntu bash << 'GSD'
 cd /home/ubuntu
 source venv/bin/activate
 python setup/sampledata/unter.py
+head -n 10000 contact_records.json > contact_records.json.small
+tail -n +10001 contact_records.json > contact_records.json.large
+mv contact_records.json contact_records.json.full
 GSD

@@ -15,6 +15,9 @@ DATA_FILE="contact_records.json"
 #Stop any test after 1 minute 
 MAX_TIME=60
 
+#Increase this if you get this done in seconds
+NUM_REQUESTS=10000
+
 echo "-------------------------------------------------------"
 echo "Step 0: Pre-flight Check (Service Availability)"
 echo "-------------------------------------------------------"
@@ -56,10 +59,11 @@ echo -e "\n-------------------------------------------------------"
 echo "Step 2: Large Initial File Upload (Single Request)"
 echo "-------------------------------------------------------"
 
+
 # --max-time (or -m) handles the timeout natively within curl
 # Exit code 28 is the specific code for a timeout
 $TIMEOUT_CMD ${MAX_TIME}s time -p curl -X POST \
-  -T "$DATA_FILE" \
+  -T "$DATA_FILE.large" \
   -H "Transfer-Encoding: chunked" \
   -H "Content-Type: application/octet-stream" \
   --max-time ${MAX_TIME} \
@@ -83,14 +87,14 @@ echo "-------------------------------------------------------"
 
 # -s defines the timeout per individual request
 BY_CUSTOMER="$URL_BASE/customers/cstXXXXXX/contacts"
-$TIMEOUT_CMD ${MAX_TIME}s ab -n 10000 -c 20 -l -s ${MAX_TIME} "$BY_CUSTOMER"
+$TIMEOUT_CMD ${MAX_TIME}s ab -n $NUM_REQUESTS -c 20 -l -s ${MAX_TIME} "$BY_CUSTOMER"
 
 RESULT=$?
 
 if [ $RESULT -eq 124 ]; then
-    echo -e "\n[!] ERROR: Benchmark timed out before completing 10,000 requests."
+    echo -e "\n[!] ERROR: Benchmark timed out before completing $NUM_REQUESTS requests."
 else
-    echo -e "\n[+] Benchmark finished (completed 10,000 requests or server closed connection)."
+    echo -e "\n[+] Benchmark finished (completed $NUM_REQUESTS requests or server closed connection)."
 fi
 
 
@@ -103,14 +107,14 @@ echo "-------------------------------------------------------"
 # -s defines the timeout per individual request
 BY_DRIVER="$URL_BASE/drivers/drvXXXXXX/contacts"
 
-$TIMEOUT_CMD ${MAX_TIME}s ab -n 10000 -c 20 -l -s ${MAX_TIME} "$BY_DRIVER"
+$TIMEOUT_CMD ${MAX_TIME}s ab -n $NUM_REQUESTS -c 20 -l -s ${MAX_TIME} "$BY_DRIVER"
 
 RESULT=$?
 
 if [ $RESULT -eq 124 ]; then
-    echo -e "\n[!] ERROR: Benchmark timed out before completing 10,000 requests."
+    echo -e "\n[!] ERROR: Benchmark timed out before completing $NUM_REQUESTS requests."
 else
-    echo -e "\n[+] Benchmark finished (completed 10,000 requests or server closed connection)."
+    echo -e "\n[+] Benchmark finished (completed $NUM_REQUESTS requests or server closed connection)."
 fi
 
 
@@ -122,14 +126,14 @@ echo "-------------------------------------------------------"
 # -s defines the timeout per individual request
 COMMENT_URL="$URL_BASE/contacts/id/comments"
 echo "Comment: This test simulates adding random comments to contacts" > comment.txt
-$TIMEOUT_CMD ${MAX_TIME}s ab -n 10000 -c 20  -p comment.txt  -T "application/json" $COMMENT_URL
+$TIMEOUT_CMD ${MAX_TIME}s ab -n $NUM_REQUESTS -c 20  -p comment.txt  -T "application/json" $COMMENT_URL
 
 RESULT=$?
 
 if [ $RESULT -eq 124 ]; then
-    echo -e "\n[!] ERROR: Benchmark timed out before completing 10,000 requests."
+    echo -e "\n[!] ERROR: Benchmark timed out before completing $NUM_REQUESTS requests."
 else
-    echo -e "\n[+] Benchmark finished (completed 10,000 requests or server closed connection)."
+    echo -e "\n[+] Benchmark finished (completed $NUM_REQUESTS requests or server closed connection)."
 fi
 
 echo -e "\n-------------------------------------------------------"

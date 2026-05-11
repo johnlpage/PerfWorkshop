@@ -4,10 +4,11 @@ import random
 import time
 import logging
 from flask import Flask, request, jsonify
-from pymongo import MongoClient
+from pymongo import MongoClient,IndexModel, ASCENDING
 from bson import ObjectId
 from utils import line_stream, progress, GunicornApp
 from datetime import UTC, datetime, timedelta
+from pymongo.errors import DuplicateKeyError
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,9 +33,15 @@ def pre_flight():
     count = collection.estimated_document_count()
     print(f"Preflight check: Connected to MongoDB! Document count: {count}")
     print("Ensuring required indexes...")
-    collection.create_index("contact_id", unique=True)
-    collection.create_index("customer_id")
-    collection.create_index("driver_rating.driver_id")
+    start_time = time.perf_counter()
+    index_models = [
+    IndexModel([("contact_id", ASCENDING)], unique=True),
+    IndexModel([("customer_id", ASCENDING)]),
+    IndexModel([("driver_rating.driver_id", ASCENDING)])
+]
+    collection.create_indexes(index_models)
+    duration = time.perf_counter() - start_time
+    print(f"Execution time: {duration:.4f} seconds")
 
 # Called after fork() of new process for safety so each has own driver
 def init_db(server, worker):
@@ -65,9 +72,16 @@ def insert():
         except json.JSONDecodeError:
             logger.error(f"Failed to parse line: {line[:100]}")
             continue
+      
+        
 
         bytes_read[0] += len(line) + 1
-        collection.insert_one(doc)
+        try:
+            collection.insert_one(doc)
+        except DuplicateKeyError as e:
+            logger.error("Duplicate insert request, stopping call")
+            return jsonify({"inserted": count}), 409
+
         count = count + 1
         progress(count, start_time, content_length, bytes_read[0], logger)
 
@@ -96,6 +110,8 @@ def get_customer_contacts(custid):
 
     mongo_query = {"customer_id": custid, "timestamp": {"$gte": formatted_date}}
     docs = list(collection.find(mongo_query))
+    if len(docs) == 0:
+        return {"unknown customer":True}, 404
     for doc in docs:
         doc["_id"] = str(doc["_id"])
     return jsonify(docs),200
@@ -117,6 +133,8 @@ def get_driver_contacts(driverid):
         "timestamp": {"$gte": formatted_date},
     }
     docs = list(collection.find(mongo_query))
+    if len(docs) == 0:
+        return {"unknown driver":True}, 404
     for doc in docs:
         doc["_id"] = str(doc["_id"])
 
