@@ -23,6 +23,7 @@ NUM_LOCATIONS = 10_000
 client = None
 collection = None
 
+
 def pre_flight():
     global client, collection
     client = MongoClient(
@@ -31,8 +32,8 @@ def pre_flight():
     collection = client["unter"]["contacts"]
     client.admin.command("ping")
     count = collection.estimated_document_count()
-    print(f"Preflight check: Connected to MongoDB! Document count: {count}")
-    print("Ensuring required indexes...")
+    logger.info(f"Preflight check: Connected to MongoDB! Document count: {count}")
+    logger.info("Ensuring required indexes...")
     start_time = time.perf_counter()
     index_models = [
     IndexModel([("contact_id", ASCENDING)], unique=True),
@@ -41,7 +42,7 @@ def pre_flight():
 ]
     collection.create_indexes(index_models)
     duration = time.perf_counter() - start_time
-    print(f"Execution time: {duration:.4f} seconds")
+    logger.info(f"Execution time: {duration:.4f} seconds")
 
 # Called after fork() of new process for safety so each has own driver
 def init_db(server, worker):
@@ -110,8 +111,7 @@ def get_customer_contacts(custid):
 
     mongo_query = {"customer_id": custid, "timestamp": {"$gte": formatted_date}}
     docs = list(collection.find(mongo_query))
-    if len(docs) == 0:
-        return {"unknown customer":True}, 404
+
     for doc in docs:
         doc["_id"] = str(doc["_id"])
     return jsonify(docs),200
@@ -140,10 +140,11 @@ def get_driver_contacts(driverid):
 
     return jsonify(docs),200
 
-app.route("/contacts/<id>/comments", methods=["POST"])
+@app.route("/contacts/<id>/comments", methods=["POST"])
 def add_comment(id):
 
     id = f"cnt{random.randint(1, NUM_RECORDS):010d}"
+
     # Extract the comment string from the POST body
     # Using request.get_data(as_text=True) to get the raw string
     comment = request.get_data(as_text=True)
@@ -200,4 +201,7 @@ if __name__ == "__main__":
         "timeout": 600,
         "post_fork": init_db,
     }
+
+   
+
     GunicornApp(app, options).run()
