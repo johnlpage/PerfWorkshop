@@ -44,8 +44,14 @@ resource "mongodbatlas_advanced_cluster" "perfworkshop" {
       region_name   = local.atlas_region
       priority      = 7
 
+     # This block controls the auto-scaling behavior
+      auto_scaling {
+        compute_enabled            = false
+        disk_gb_auto_scaling_enabled = false
+      }
+
       electable_specs {
-        instance_size = "M10"
+        instance_size = "M30"
         node_count    = 3
         disk_size_gb  = 40
       }
