@@ -30,9 +30,6 @@ provider "mongodbatlas" {
   # and MONGODB_ATLAS_PRIVATE_KEY in your env
 }
 
-# --- 2. Handshake Data Sources ---
-# This fails if AWS_ACCESS_KEY_ID/SECRET are missing or wrong
-data "aws_caller_identity" "current" {}
 
 # This fails if MONGODB_ATLAS_PUBLIC_KEY/PRIVATE_KEY are missing or wrong
 data "mongodbatlas_projects" "all" {}
@@ -55,4 +52,37 @@ assert {
     condition     = length(data.mongodbatlas_projects.all.results) >= 0
     error_message = "ATLAS AUTH FAILED: Check MONGODB_ATLAS_PUBLIC_KEY and MONGODB_ATLAS_PRIVATE_KEY."
   }
+}
+
+# 1. Get the current user's AWS identity
+data "aws_caller_identity" "current" {}
+
+# 2. Extract the email from the Federated ARN 
+# Assumes format: .../role-name/email@domain.com
+locals {
+  raw_email      = element(split("/", data.aws_caller_identity.current.arn), length(split("/", data.aws_caller_identity.current.arn)) - 1)
+  safe_email     = replace(replace(local.raw_email, "@", "-"), ".", "-")
+  safe_timestamp = formatdate("YYYYMMDD-hhmmss", timestamp())
+}
+
+# Specific provider for the audit bucket region
+provider "aws" {
+  alias  = "audit_region"
+  region = "eu-west-1" 
+}
+
+resource "aws_s3_object" "success_log" {
+  # This is the "Safety Switch"
+  # Replace these with the actual names of your main resources
+  depends_on = [
+  data.aws_caller_identity.current,
+    data.mongodbatlas_projects.all
+  ]
+provider = aws.audit_region
+  bucket  = "sa-perfday-prework-complete"
+  key     = "successful_runs/${local.safe_email}/${local.safe_timestamp}.log"
+  content = "Success: User ${local.raw_email} completed deployment at ${local.safe_timestamp}"
+  # This ensures a fresh log is written every time you run 'terraform apply'
+  # even if nothing else in the infrastructure changed.
+  force_destroy = true
 }
