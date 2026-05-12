@@ -171,6 +171,7 @@ GEOF
 
 
 cp /home/ubuntu/setup/vscode/settings.json /home/ubuntu/.local/share/code-server/User/settings.json
+chown ubuntu:ubuntu /home/ubuntu/.local/share/code-server/User/settings.json
 
 #Make python venv
 
@@ -252,3 +253,8 @@ head -n 10000 contact_records.json > contact_records.json.small
 tail -n +10001 contact_records.json > contact_records.json.large
 rm contact_records.json 
 GSD
+
+
+# Install Maven
+
+sudo apt install maven

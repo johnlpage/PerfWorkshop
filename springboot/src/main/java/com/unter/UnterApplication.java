@@ -1,9 +1,13 @@
 package com.unter;
 
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.IndexModel;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 import jakarta.annotation.PostConstruct;
+
+import java.util.Arrays;
+
 import org.bson.Document;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -25,10 +29,10 @@ public class UnterApplication {
     @PostConstruct
     public void initIndexes() {
         MongoCollection<Document> collection = mongoTemplate.getCollection("contacts");
-        collection.createIndex(Indexes.ascending("contact_id"), new IndexOptions().unique(true));
-        collection.createIndex(Indexes.ascending("customer_id"));
-        collection.createIndex(Indexes.ascending("driver_rating.driver_id"));
-        
+        collection.createIndexes(Arrays.asList(
+                new IndexModel(Indexes.ascending("contact_id"), new IndexOptions().unique(true)),
+                new IndexModel(Indexes.ascending("customer_id")),
+                new IndexModel(Indexes.ascending("driver_rating.driver_id"))));
         System.out.println("Connected to MongoDB! Documents: " + collection.estimatedDocumentCount());
     }
 }
