@@ -242,6 +242,10 @@ echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.
 
 apt install -y mongodb-database-tools  
 
+# Install Maven
+
+sudo apt install -y maven
+
 # Generate sample data
 
 
@@ -249,12 +253,8 @@ sudo -u ubuntu bash << 'GSD'
 cd /home/ubuntu
 source venv/bin/activate
 python setup/sampledata/unter.py
-head -n 10000 contact_records.json > contact_records.json.small
-tail -n +10001 contact_records.json > contact_records.json.large
 rm contact_records.json 
 GSD
 
 
-# Install Maven
 
-sudo apt install -y maven

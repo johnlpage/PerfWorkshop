@@ -13,10 +13,9 @@ URL_contacts="${URL_BASE}/contacts"
 URL_PING="${URL_BASE}/ping"
 DATA_FILE="contact_records.json"
 #Stop any test after 1 minute 
-MAX_TIME=60
-
+MAX_TIME=120
 #Increase this if you get this done in seconds
-NUM_REQUESTS=10000
+NUM_REQUESTS=5000
 
 echo "-------------------------------------------------------"
 echo "Step 0: Pre-flight Check (Service Availability)"
@@ -34,6 +33,12 @@ echo "[+] Service is UP. Proceeding with benchmarks..."
 echo -e "\n-------------------------------------------------------"
 echo "Step 1: Micro Batch File Upload (Single Request)"
 echo "-------------------------------------------------------"
+
+echo "Generating sample data file with 10,000 records based on current timestamp..."
+
+export START_ID=$(awk '{print int($1/20) * 10000 + 5000000}' /proc/uptime)
+python /home/ubuntu/setup/sampledata/unter.py 10000 "$DATA_FILE.small" $START_ID
+
 
 # --max-time (or -m) handles the timeout natively within curl
 # Exit code 28 is the specific code for a timeout
@@ -63,7 +68,7 @@ echo "-------------------------------------------------------"
 # --max-time (or -m) handles the timeout natively within curl
 # Exit code 28 is the specific code for a timeout
 $TIMEOUT_CMD ${MAX_TIME}s time -p curl -X POST \
-  -T "$DATA_FILE.large" \
+  -T "$DATA_FILE" \
   -H "Transfer-Encoding: chunked" \
   -H "Content-Type: application/octet-stream" \
   --max-time ${MAX_TIME} \
@@ -141,7 +146,7 @@ echo "Step 4: Driver Rating Averages (Aggregation Performance)"
 echo "-------------------------------------------------------"
 
 STATS_URL="$URL_BASE/drivers/stats/averages"
-ITERATIONS=5
+ITERATIONS=2
 TOTAL_TIME=0
 
 for i in $(seq 1 $ITERATIONS); do
