@@ -253,7 +253,6 @@ sudo -u ubuntu bash << 'GSD'
 cd /home/ubuntu
 source venv/bin/activate
 python setup/sampledata/unter.py
-rm contact_records.json 
 GSD
 
 
