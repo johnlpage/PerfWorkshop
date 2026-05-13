@@ -52,9 +52,6 @@ resource "mongodbatlas_advanced_cluster" "perfworkshop" {
 
       }
 
-
-  
-
       electable_specs {
         instance_size = "M30"
         node_count    = 3
@@ -89,6 +86,7 @@ resource "mongodbatlas_database_user" "iam_user" {
     role_name     = "clusterMonitor"
     database_name = "admin"
   }
+
 }
 
 # -------------------------------------------------------------------
@@ -111,6 +109,7 @@ resource "mongodbatlas_project_ip_access_list" "local" {
 # Outputs
 # -------------------------------------------------------------------
 
+/*
 output "atlas_connection_string" {
   value = mongodbatlas_advanced_cluster.perfworkshop.connection_strings[0].standard_srv
 }
@@ -118,3 +117,4 @@ output "atlas_connection_string" {
 output "atlas_iam_connect_command" {
   value = "mongosh \"${mongodbatlas_advanced_cluster.perfworkshop.connection_strings[0].standard_srv}\" --authenticationMechanism MONGODB-AWS"
 }
+*/

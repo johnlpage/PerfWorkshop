@@ -100,19 +100,23 @@ locals {
 # Outputs
 # -------------------------------------------------------------------
 
-output "normalized_username" {
-  value = local.username_clean
-}
-
 output "environment_password" {
   value     = random_password.code_server.result
   sensitive = true
 }
 
+
+/*
+output "normalized_username" {
+  value = local.username_clean
+}
+
+
 output "mongo_auth_role_arn" {
   description = "IAM Role ARN to configure in MongoDB Atlas for IAM authentication"
   value       = aws_iam_role.mongo_auth.arn
 }
+*/
 
 output "next_steps" {
   value = <<EOF
@@ -126,11 +130,6 @@ To retrieve the code-server password, run:
 URL:
   ${local.green}https://${local.hostname}${local.reset}
 
-Connect to MongoDB Atlas with IAM Auth:
-  ${local.yellow}mongosh "mongodb+srv://johnpage-cluster.qcpeq8.mongodb.net/?authSource=%%24external&authMechanism=MONGODB-AWS"${local.reset}
-
-IAM Role ARN for MongoDB Atlas IAM Auth:
-  ${local.yellow}${aws_iam_role.mongo_auth.arn}${local.reset}
 EOF
 }
 
