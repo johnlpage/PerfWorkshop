@@ -1,18 +1,24 @@
-# NodeJS Instructions
+# Java with Springboot Instructions
 
 # Running the Web service
 
-Open a terminal then install modules
+Open a terminal then 
 
 ```
-cd /home/ubuntu/nodejs
-npm install
+cd /home/ubuntu/java_springboot
+```
+
+Build the code
+
+```
+mvn clean package
 ```
 
 Run the service
 
 ```
-node unterservice.js
+java -jar target/unterservice-1.0.jar
+
 ```
 
 
@@ -37,5 +43,5 @@ bash testharness.sh
 If its still running but not attached to a terminal, open a terminal and run
 
 ```
-pkill -f unterservice.js
+pkill -f unterservice
 ```

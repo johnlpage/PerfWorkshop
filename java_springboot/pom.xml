@@ -11,12 +11,15 @@
     </parent>
 
     <groupId>com.unter</groupId>
-    <artifactId>unter-api</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <artifactId>unterservice</artifactId>
+    <version>1.0</version>
 
-    <properties>
-        <java.version>17</java.version>
+     <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
 
     <dependencies>
         <dependency>

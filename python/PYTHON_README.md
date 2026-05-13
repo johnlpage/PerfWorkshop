@@ -6,10 +6,10 @@ Open a terminal then
 
 ```
 cd /home/ubuntu/python
-python service.py
+python unterservice.py
 ```
 
-You can also run it in vs code by clicking the 'Play' Arrow at the top right
+
 
 # Stopping the python service
 
@@ -31,5 +31,5 @@ bash testharness.sh
 If its still running but not attached to a terminal, open a terminal and run
 
 ```
-pkill -f service.py
+pkill -f unterservice.py
 ```
