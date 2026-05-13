@@ -47,9 +47,7 @@ resource "mongodbatlas_advanced_cluster" "perfworkshop" {
      # This block controls the auto-scaling behavior
       auto_scaling {
         compute_enabled            = false
-
         disk_gb_enabled = false
-
       }
 
       electable_specs {

@@ -34,10 +34,10 @@ echo -e "\n-------------------------------------------------------"
 echo "Step 1: Micro Batch File Upload (Single Request)"
 echo "-------------------------------------------------------"
 
-echo "Generating sample data file with 10,000 records based on current timestamp..."
+echo "Generating sample data file with 25,000 records based on current timestamp..."
 
-export START_ID=$(awk '{print int($1/20) * 10000 + 5000000}' /proc/uptime)
-python /home/ubuntu/setup/sampledata/unter.py 10000 "$DATA_FILE.small" $START_ID
+export START_ID=$(awk '{print int($1/20) * 25000 + 5000000}' /proc/uptime)
+python /home/ubuntu/setup/sampledata/unter.py 25000 "$DATA_FILE.small" $START_ID
 
 
 # --max-time (or -m) handles the timeout natively within curl
@@ -60,33 +60,9 @@ else
     echo -e "\n[+] Upload completed successfully."
 fi
 
-echo -e "\n-------------------------------------------------------"
-echo "Step 2: Large Initial File Upload (Single Request)"
-echo "-------------------------------------------------------"
-
-
-# --max-time (or -m) handles the timeout natively within curl
-# Exit code 28 is the specific code for a timeout
-$TIMEOUT_CMD ${MAX_TIME}s time -p curl -X POST \
-  -T "$DATA_FILE" \
-  -H "Transfer-Encoding: chunked" \
-  -H "Content-Type: application/octet-stream" \
-  --max-time ${MAX_TIME} \
-  --progress-bar \
-  "$URL_contacts"
-
-RESULT=$?
-
-if [ $RESULT -eq 28 ]; then
-    echo -e "\n[!] ERROR: Upload exceeded ${MAX_TIME}s limit (Curl Timeout)."
-elif [ $RESULT -ne 0 ]; then
-    echo -e "\n[!] ERROR: Curl failed with exit code $RESULT."
-else
-    echo -e "\n[+] Upload completed successfully."
-fi
 
 echo -e "\n-------------------------------------------------------"
-echo "Step 3: Testing fetching recent contacts from customer"
+echo "Step 2: Testing fetching recent contacts from customer"
 echo "-------------------------------------------------------"
 
 
@@ -124,7 +100,7 @@ fi
 
 
 echo -e "\n-------------------------------------------------------"
-echo "Step 3: Testing adding random comments to contacts"
+echo "Step 4: Testing adding random comments to contacts"
 echo "-------------------------------------------------------"
 
 
@@ -142,7 +118,7 @@ else
 fi
 
 echo -e "\n-------------------------------------------------------"
-echo "Step 4: Driver Rating Averages (Aggregation Performance)"
+echo "Step 5: Driver Rating Averages (Aggregation Performance)"
 echo "-------------------------------------------------------"
 
 STATS_URL="$URL_BASE/drivers/stats/averages"
