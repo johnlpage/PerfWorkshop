@@ -264,8 +264,7 @@ resource "aws_instance" "dev" {
   vpc_security_group_ids = [aws_security_group.dev_env.id]
 
   root_block_device {
-    volume_size = 6
-    0
+    volume_size = 60
     volume_type = "gp3"
   }
 
