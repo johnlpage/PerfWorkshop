@@ -91,10 +91,9 @@ def insert():
 
 @app.route("/contacts/<id>", methods=["GET"])
 def get_thing(id):
-    doc = collection.find_one({"_id": ObjectId(id)})
+    doc = collection.find_one({"contact_id": id})
     if not doc:
         return jsonify({"error": "Not found"}), 404
-    doc["_id"] = str(doc["_id"])
     return jsonify(doc),200
 
 

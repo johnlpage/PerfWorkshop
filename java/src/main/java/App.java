@@ -100,7 +100,7 @@ public class App {
         get("/contacts/:id", (req, res) -> {
             res.type("application/json");
             try {
-                Document doc = collection.find(Filters.eq("_id", new ObjectId(req.params("id")))).first();
+                Document doc = collection.find(Filters.eq("contact_id", req.params("id"))).first();
                 if (doc == null) {
                     res.status(404);
                     return "{\"error\": \"Not found\"}";

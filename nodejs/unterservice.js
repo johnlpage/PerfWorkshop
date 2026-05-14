@@ -49,7 +49,7 @@ app.post("/contacts", async (req, res) => {
 
 app.get("/contacts/:id", async (req, res) => {
   try {
-    const doc = await collection.findOne({ _id: new ObjectId(req.params.id) });
+    const doc = await collection.findOne({ contact_id: eq.params.id });
     if (!doc) return res.status(404).json({ error: "Not found" });
     res.json(doc);
   } catch (err) {
