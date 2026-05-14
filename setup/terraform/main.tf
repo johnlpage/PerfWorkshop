@@ -31,6 +31,17 @@ provider "aws" {
   region = var.region
 }
 
+output "selected_aws_region" {
+  value       = var.region
+  description = "The region currently targeted for deployment."
+}
+
+# This is the "hardcoded" provider for your secrets
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+}
+
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
@@ -54,10 +65,14 @@ data "aws_ami" "ubuntu" {
 
 data "aws_secretsmanager_secret" "tls_fullchain" {
   name = "code-mongosa-net/tls-fullchain"
+  provider = aws.us_east_1
+
 }
 
 data "aws_secretsmanager_secret" "tls_privkey" {
   name = "code-mongosa-net/tls-privkey"
+  provider = aws.us_east_1
+
 }
 
 locals {
@@ -257,7 +272,7 @@ data "aws_vpc" "default" {
 
 resource "aws_instance" "dev" {
   ami                  = data.aws_ami.ubuntu.id
-  instance_type        = "c8a.large"
+  instance_type        = "c7a.large"
   key_name             = aws_key_pair.codeenv.key_name
   iam_instance_profile = aws_iam_instance_profile.mongo_auth.name
 
