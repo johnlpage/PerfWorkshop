@@ -52,13 +52,13 @@ mkdir -p /etc/nginx/certs
 
 aws secretsmanager get-secret-value \
   --secret-id "$TLS_FULLCHAIN_SECRET" \
-  --region "$AWS_REGION" \
+  --region "us-east-1" \
   --query 'SecretString' \
   --output text > /etc/nginx/certs/fullchain.pem
 
 aws secretsmanager get-secret-value \
   --secret-id "$TLS_PRIVKEY_SECRET" \
-  --region "$AWS_REGION" \
+  --region "us-east-1" \
   --query 'SecretString' \
   --output text > /etc/nginx/certs/privkey.pem
 
