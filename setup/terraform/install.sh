@@ -252,7 +252,8 @@ sudo apt install -y maven
 sudo -u ubuntu bash << 'GSD'
 cd /home/ubuntu
 source venv/bin/activate
-python setup/sampledata/unter.py
+python setup/sampledata/unter.py 5000000 STILL_GENERATING
+mv STILL_GENERATING contact_records.json
 GSD
 
 
