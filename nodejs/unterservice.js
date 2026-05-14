@@ -162,11 +162,13 @@ const startServer = async () => {
 
     // 2. Ensure Indexes
     // Note: MongoDB handles "createIndex" gracefully if they already exist
+    console.log("Ensuring indexes...");
     await collection.createIndexes([
       { key: { contact_id: 1 }, unique: true },
       { key: { customer_id: 1 } },
       { key: { "driver_rating.driver_id": 1 } },
     ]);
+    console.log("Indexes available");
 
     // 3. Start the App
     app.listen(PORT, () => {
