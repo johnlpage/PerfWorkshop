@@ -15,7 +15,7 @@ DATA_FILE="contact_records.json"
 #Stop any test after 1 minute 
 MAX_TIME=120
 #Increase this if you get this done in seconds
-NUM_REQUESTS=5000
+NUM_REQUESTS=10000
 
 echo "-------------------------------------------------------"
 echo "Step 0: Pre-flight Check (Service Availability)"
